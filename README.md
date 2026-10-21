@@ -6,9 +6,9 @@ A full-stack, cloud-deployed **security log monitoring** application. It ingests
 
 | | |
 |---|---|
-| **Live app** | _PUBLIC_URL_ |
-| **API health** | _PUBLIC_URL_/api/health |
-| **Repository** | _REPO_URL_ |
+| **Live app** | https://cloud-security-log-monitor.vercel.app |
+| **API health** | https://cloud-security-log-monitor.vercel.app/api/health |
+| **Repository** | https://github.com/JaswanthReddy5/cloud-security-log-monitor |
 
 ![Dashboard](docs/screenshots/dashboard.png)
 
@@ -126,7 +126,7 @@ cloud-security-log-monitor/
 Prerequisites: Python 3.12+, Node.js 20+, Git.
 
 ```bash
-git clone _REPO_URL_.git
+git clone https://github.com/JaswanthReddy5/cloud-security-log-monitor.git
 cd cloud-security-log-monitor
 
 # Backend
@@ -150,7 +150,7 @@ To use PostgreSQL locally, set `DATABASE_URL=postgresql://…` in `.env`.
 
 | Variable | Required | Description |
 |---|---|---|
-| `DATABASE_URL` | **prod: yes** | PostgreSQL URL (`postgres://` / `postgresql://` accepted). Set automatically by the Vercel ↔ Neon integration. Empty locally → SQLite. `POSTGRES_URL` is used as a fallback. |
+| `DATABASE_URL` | **prod: yes** | PostgreSQL URL (`postgres://` / `postgresql://` accepted); use Neon’s pooled endpoint. Stored as a Sensitive Vercel env var (set automatically if you use the Vercel ↔ Neon integration). Empty locally → SQLite. `POSTGRES_URL` is used as a fallback. |
 | `ADMIN_API_KEY` | recommended | Secret for admin actions (reset, threshold changes). If unset, admin endpoints are disabled (403). |
 | `IP_HASH_SALT` | recommended | Salt for hashing client IPs used in rate limiting. Raw visitor IPs are never stored. |
 | `CORS_ORIGINS` | no | Comma-separated allowed origins, only if the frontend is hosted elsewhere. |
@@ -209,7 +209,7 @@ Admin endpoints require header `X-Admin-Key: <ADMIN_API_KEY>`.
 
 ```bash
 # Generate synthetic logs
-curl -X POST _PUBLIC_URL_/api/logs/generate -H "Content-Type: application/json" -d '{"count": 250}'
+curl -X POST https://cloud-security-log-monitor.vercel.app/api/logs/generate -H "Content-Type: application/json" -d '{"count": 250}'
 ```
 ```json
 {"ok": true, "data": {"batch": {"id": 3, "source": "synthetic", "received": 342, "imported": 336, "rejected": 6,
@@ -220,17 +220,17 @@ curl -X POST _PUBLIC_URL_/api/logs/generate -H "Content-Type: application/json" 
 
 ```bash
 # Upload a CSV file
-curl -X POST _PUBLIC_URL_/api/logs/upload -F "file=@sample_security_logs.csv"
+curl -X POST https://cloud-security-log-monitor.vercel.app/api/logs/upload -F "file=@sample_security_logs.csv"
 
 # Push events from a log shipper
-curl -X POST _PUBLIC_URL_/api/logs/ingest -H "Content-Type: application/json" \
+curl -X POST https://cloud-security-log-monitor.vercel.app/api/logs/ingest -H "Content-Type: application/json" \
   -d '{"events":[{"timestamp":"2026-10-21T10:00:00Z","source_ip":"203.0.113.7","username":"bob","status":"failure"}]}'
 
 # Open HIGH/CRITICAL alerts
-curl "_PUBLIC_URL_/api/alerts?status=open&severity=HIGH,CRITICAL"
+curl "https://cloud-security-log-monitor.vercel.app/api/alerts?status=open&severity=HIGH,CRITICAL"
 
 # Acknowledge alert 12
-curl -X PATCH _PUBLIC_URL_/api/alerts/12 -H "Content-Type: application/json" -d '{"acknowledged": true}'
+curl -X PATCH https://cloud-security-log-monitor.vercel.app/api/alerts/12 -H "Content-Type: application/json" -d '{"acknowledged": true}'
 ```
 
 **Accepted log format** (CSV header or JSON keys; common aliases such as `ip`, `user`, `result` are accepted):
@@ -272,7 +272,7 @@ npm run lint && npm test && npm run build
 
 # End-to-end smoke test against a running instance (local or production)
 python scripts/smoke_test.py http://127.0.0.1:5000
-python scripts/smoke_test.py _PUBLIC_URL_
+python scripts/smoke_test.py https://cloud-security-log-monitor.vercel.app
 ```
 
 Coverage of the required cases (all in `backend/tests/`):
@@ -292,18 +292,30 @@ Coverage of the required cases (all in `backend/tests/`):
 | DB errors / unavailable config | `test_database_not_configured`, `test_database_unreachable`, `test_production_requires_database_url` |
 | API error responses | `test_events_bad_params`, `test_unknown_route_and_method`, `test_generate_validation`, `test_reset_requires_admin_and_confirmation`, `test_rate_limit` |
 
-_TEST_RESULTS_
+**Latest results (21 Oct 2026):**
+
+| Suite | Result |
+|---|---|
+| Backend `pytest` (detection, parsing, API, persistence, DB failures, env sanitizing) | **68 passed** |
+| Backend `ruff` lint | clean |
+| Frontend ESLint · Vitest · `tsc` + `vite build` | clean · **4 passed** · build OK |
+| End-to-end smoke test, local (SQLite) | **21 / 21 passed** |
+| End-to-end smoke test, **production** (Vercel + Neon) | **21 / 21 passed** |
+| GitHub Actions CI | passing |
+| Manual browser checks (local + production): generate, filters/search/sort, acknowledge, reload persistence, light/dark, 375 px mobile, console errors | passed, no console errors |
 
 ## Deployment
 
+**Live deployment:** https://cloud-security-log-monitor.vercel.app (Vercel Hobby plan) with a **Neon** PostgreSQL 18 database (`seclog-db`, free plan, AWS us-east-1, pooled endpoint).
+
 The project deploys as **one Vercel project** connected to this GitHub repository:
 
-1. **Vercel → Add New → Project → Import** the GitHub repository (root directory = repo root). `vercel.json` sets the build (`npm --prefix frontend run build`), output (`frontend/dist`), the Python function (`api/index.py`) and the `/api/*` rewrite.
-2. **Storage → Create Database → Neon (Postgres)** and connect it to the project. This injects `DATABASE_URL` (and related variables) as encrypted environment variables. Neon’s free plan is sufficient.
-3. **Settings → Environment Variables:** add `ADMIN_API_KEY` and `IP_HASH_SALT` (long random strings) for Production.
-4. **Redeploy.** Tables are created automatically on the first request. Verify with `/api/health` and `python scripts/smoke_test.py <url>`.
+1. **Vercel → Add New → Project → Import** the GitHub repository (root directory = repo root), or `vercel link` + `vercel git connect`. `vercel.json` sets the build (`npm --prefix frontend run build`), output (`frontend/dist`), the Python function (`api/index.py`) and the `/api/*` rewrite.
+2. **Create a Neon database** (free plan), either via Vercel **Storage → Create Database → Neon**, or directly in Neon (`neonctl projects create --name seclog-db --region-id aws-us-east-1`).
+3. **Set encrypted environment variables (Production):** `DATABASE_URL` (Neon *pooled* connection string), `ADMIN_API_KEY` and `IP_HASH_SALT` (long random strings), as **Sensitive** values in Vercel → Settings → Environment Variables, or `vercel env add NAME production --sensitive`.
+4. **Deploy:** push to `main`. Tables are created automatically on the first request. Verify with `/api/health` and `python scripts/smoke_test.py https://cloud-security-log-monitor.vercel.app`.
 
-Every push to `main` triggers a new production deployment; GitHub Actions runs the test suites on each push / PR.
+Every push to `main` triggers a new production deployment; GitHub Actions runs the test suites on each push / PR. Runtime logs (including the app’s structured `{"event": "ingest" | "alert_ack" | "reset" ...}` audit lines) are in Vercel → Project → Logs.
 
 ## Security controls
 
