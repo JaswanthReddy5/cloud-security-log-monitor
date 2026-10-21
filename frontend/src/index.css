@@ -1,0 +1,105 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Color tokens as RGB triplets so Tailwind opacity modifiers work. */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: 10 13 19;
+  --panel: 19 23 32;
+  --raised: 27 32 44;
+  --line: 42 48 62;
+  --ink: 240 239 236;
+  --ink2: 196 200 210;
+  --muted: 140 146 160;
+  --accent: 57 135 229;
+  --good: 12 163 12;
+  --warn: 250 178 25;
+  --serious: 236 131 90;
+  --crit: 230 103 103;
+  /* chart-only */
+  --chart-success: #3987e5;
+  --chart-failure: #d95926;
+  --chart-flagged: #e66767;
+  --chart-grid: #262c39;
+  --chart-axis: #8c92a0;
+  --chart-bar: #3987e5;
+  --sev-info: #8c92a0;
+  --sev-low: #3987e5;
+  --sev-medium: #fab219;
+  --sev-high: #ec835a;
+  --sev-critical: #e05252;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page: 244 245 247;
+  --panel: 252 252 251;
+  --raised: 240 241 243;
+  --line: 222 224 228;
+  --ink: 11 11 11;
+  --ink2: 72 76 86;
+  --muted: 104 108 118;
+  --accent: 42 120 214;
+  --good: 0 110 0;
+  --warn: 166 110 0;
+  --serious: 190 80 40;
+  --crit: 196 48 48;
+  --chart-success: #2a78d6;
+  --chart-failure: #eb6834;
+  --chart-flagged: #e34948;
+  --chart-grid: #e1e0d9;
+  --chart-axis: #6c707a;
+  --chart-bar: #2a78d6;
+  --sev-info: #898781;
+  --sev-low: #2a78d6;
+  --sev-medium: #eda100;
+  --sev-high: #eb6834;
+  --sev-critical: #d03b3b;
+}
+
+html,
+body {
+  background: rgb(var(--page));
+  color: rgb(var(--ink));
+}
+
+body {
+  @apply font-sans antialiased;
+  min-height: 100vh;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl border border-line bg-panel;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/60;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent/85;
+  }
+  .btn-ghost {
+    @apply btn border border-line bg-raised text-ink2 hover:text-ink hover:border-muted/60;
+  }
+  .btn-danger {
+    @apply btn bg-crit/90 text-white hover:bg-crit;
+  }
+  .input {
+    @apply w-full rounded-lg border border-line bg-raised px-3 py-2 text-sm text-ink placeholder:text-muted focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent/50;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-muted;
+  }
+  .th {
+    @apply whitespace-nowrap px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted;
+  }
+  .td {
+    @apply whitespace-nowrap px-3 py-2.5 text-sm text-ink2;
+  }
+}

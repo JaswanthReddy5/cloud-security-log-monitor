@@ -1,0 +1,7 @@
+.venv
+.env
+backend/instance
+backend/tests
+frontend/node_modules
+frontend/dist
+docs
