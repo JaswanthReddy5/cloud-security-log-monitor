@@ -216,6 +216,15 @@ def test_production_requires_database_url():
     assert s.resolved_database_url().startswith("postgresql+psycopg://")
 
 
+def test_env_values_are_sanitized(monkeypatch):
+    from app.config import Settings
+    monkeypatch.setenv("DATABASE_URL", "﻿postgresql://u:p@host/db\n")
+    monkeypatch.setenv("ADMIN_API_KEY", "﻿secret-key \r\n")
+    s = Settings.from_env()
+    assert s.database_url == "postgresql://u:p@host/db"
+    assert s.admin_api_key == "secret-key"
+
+
 def test_rate_limit(make_app):
     app = make_app()
     app.config["TESTING_DISABLE_RATE_LIMIT"] = False

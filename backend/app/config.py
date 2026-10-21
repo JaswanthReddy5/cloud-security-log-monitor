@@ -8,6 +8,16 @@ import os
 from dataclasses import dataclass, field
 
 
+def _env(name: str) -> str | None:
+    """Read an env var, stripping whitespace and stray BOM/zero-width characters
+    that copy-paste or shell piping can introduce into secrets."""
+    value = os.environ.get(name)
+    if value is None:
+        return None
+    value = value.strip().strip("﻿​").strip()
+    return value or None
+
+
 def _int(name: str, default: int) -> int:
     try:
         return int(os.environ.get(name, default))
@@ -89,12 +99,12 @@ class Settings:
     def from_env(cls) -> Settings:
         is_vercel = bool(os.environ.get("VERCEL"))
         env = os.environ.get("APP_ENV") or ("production" if is_vercel else "development")
-        db_url = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
-        origins = [o.strip() for o in os.environ.get("CORS_ORIGINS", "").split(",") if o.strip()]
+        db_url = _env("DATABASE_URL") or _env("POSTGRES_URL")
+        origins = [o.strip() for o in (_env("CORS_ORIGINS") or "").split(",") if o.strip()]
         return cls(
             database_url=db_url,
-            admin_api_key=os.environ.get("ADMIN_API_KEY") or None,
-            ip_hash_salt=os.environ.get("IP_HASH_SALT", ""),
+            admin_api_key=_env("ADMIN_API_KEY"),
+            ip_hash_salt=_env("IP_HASH_SALT") or "",
             cors_origins=origins,
             is_vercel=is_vercel,
             environment=env,
